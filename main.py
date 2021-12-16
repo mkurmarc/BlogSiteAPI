@@ -32,6 +32,7 @@ def create_posts(payload: dict = Body(...)): # saves body content to a dict name
 
 @app.post("/createposts")
 def create_posts(new_post: Post): # FastAPI automatically checks frontend payload if data fits the 
-    print(new_post.published)         # schema model, Post. If true, then it validates and data is 
+    print(new_post.published)     # schema model, Post. If true, then it validates and data is 
     return {"NEW POST"}           # available via 'new_post'. If false, then error is sent back to
                                   # user stating where the error is. AUTOMATIC VALIDATION
+
