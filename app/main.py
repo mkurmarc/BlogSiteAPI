@@ -78,7 +78,7 @@ def delete_post(id: int):
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post): # 'post: Post' makes sures the request comes in with the right schema
     index = find_index_post(id)
-
+    # if index doesnt exist, this sends an error code to the user stating the reason
     if index == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
