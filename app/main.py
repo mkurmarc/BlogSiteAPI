@@ -54,7 +54,11 @@ def root():
 
 @app.get("/posts")
 def get_posts():
-    return{"data": my_posts} # If I pass in an array like this, FastAPI 
+    cursor.execute("""
+        SELECT * FROM posts
+    """)
+    posts = cursor.fetchall()
+    return{"data": posts} # If I pass in an array like this, FastAPI 
                              # serializes 'my_posts' converting it into JSON
 
 '''
