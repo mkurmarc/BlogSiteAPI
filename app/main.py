@@ -5,6 +5,9 @@ from pydantic import BaseModel
 from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
+# from .config import settings
+from pydantic import BaseSettings
+import time
 
 
 app = FastAPI()
@@ -16,14 +19,18 @@ class Post(BaseModel):
     published: bool = True # default value is true if no user provides value
     # rating: Optional[int] = None # fully optional field tht defaults to None
 
-try:
-    conn = psycopg2.connect(host='localhost', database='BlogSiteAPI', user='postgres', 
-                            password='', cursor_factory=RealDictCursor)
-    cursor = conn.cursor()
-    print("DB connection was successful!")
-except Exception as error:
-    print("Connecting to DB failed!")
-    print("Error: ", error)
+# temp solution to connect to DB. Later add production ready solution
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost', database='BlogSiteAPI', user='postgres', 
+                                password='***REMOVED***', cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("DB connection was successful!")
+        break
+    except Exception as error:
+        print("Connecting to DB failed!")
+        print("Error: ", error)
+        time.sleep(2)
 
 
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1}, 
