@@ -74,7 +74,6 @@ user stating where the error is. AUTOMATIC VALIDATION.
 #2
 Use this style of string witht he % symbols because it protects against SQL injection attacks
 '''
-  
 @app.post("/posts", status_code=status.HTTP_201_CREATED) 
 def create_posts(post: Post): #1 
     cursor.execute( #2          
@@ -84,40 +83,51 @@ def create_posts(post: Post): #1
     new_post = cursor.fetchone()
     conn.commit() # pushes the changes out to the database
     return {"data": new_post}           
-                                  
-# 'id: int' Validates that path parameter can be turned into int and does
-# so if true. Now throws error if the parameter is not the selcted type of
-# int. Also, now the frontend has a good way of understanding what they did wrong
+
+'''
+'id: int' Validates that path parameter can be turned into int and does
+so if true. Now throws error if the parameter is not the selcted type of
+int. Also, now the frontend has a good way of understanding what they did wrong
+'''                                  
 @app.get("/posts/{id}")
-def get_post(id: int):               
-    post = find_post(id)  
+def get_post(id: int):      
+    cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
+    post = cursor.fetchone()
+            
     if not post:          
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id: {id} was not found") 
+
     return{"post_detail": post}            
                                     
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    index = find_index_post(id)
 
-    if index == None:
+    cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
+
+    deleted_post = cursor.fetchone()
+    conn.commit()
+    
+    if deleted_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
 
-    my_posts.pop(index)
     return Response(status_code=status.HTTP_204_NO_CONTENT)                                   
 
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post): # 'post: Post' makes sures the request comes in with the right schema
-    index = find_index_post(id)
+    
+    cursor.execute(
+        """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
+        RETURNING * """,
+        (post.title, post.content, post.published, str(id)))
+
+    updated_post = cursor.fetchone()
+    conn.commit()
     # if index doesnt exist, this sends an error code to the user stating the reason
-    if index == None:
+    if updated_post == None: 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
-    
-    post_dict = post.dict()
-    post_dict['id'] = id 
-    my_posts[index] = post_dict
-    return {'data': post_dict}
+    return {'data': updated_post}
