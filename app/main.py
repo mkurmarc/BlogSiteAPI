@@ -83,13 +83,15 @@ def create_posts(post: Post): #1
     ) 
     new_post = cursor.fetchone()
     conn.commit() # pushes the changes out to the database
-    return {"data": "created post"}           
+    return {"data": new_post}           
                                   
-
+# 'id: int' Validates that path parameter can be turned into int and does
+# so if true. Now throws error if the parameter is not the selcted type of
+# int. Also, now the frontend has a good way of understanding what they did wrong
 @app.get("/posts/{id}")
-def get_post(id: int):    # 'id: int' Validates that path parameter can be turned into int and does           
-    post = find_post(id)  # so if true. Now throws error if the parameter is not the selcted type of
-    if not post:          # int. Also, now the frontend has a good way of understanding what they did wrong
+def get_post(id: int):               
+    post = find_post(id)  
+    if not post:          
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id: {id} was not found") 
     return{"post_detail": post}            
