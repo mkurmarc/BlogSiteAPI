@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from random import randrange
@@ -8,16 +8,18 @@ from psycopg2.extras import RealDictCursor
 # from .config import settings
 from pydantic import BaseSettings
 import time
+from . import models, schemas 
+from .database import engine, get_db
+from sqlalchemy.orm import Session
 
+
+#Create the database tables; In a very simplistic way create the database tables:
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True # default value is true if no user provides value
-    # rating: Optional[int] = None # fully optional field tht defaults to None
+
 
 # temp solution to connect to DB. Later add production ready solution
 while True:
@@ -42,10 +44,12 @@ def find_post(id):
         if p["id"] == id:
             return p
 
+
 def find_index_post(id):
     for i, p in enumerate(my_posts):
         if p['id'] == id:
             return i
+
 
 @app.get("/")
 def root():
@@ -53,9 +57,10 @@ def root():
 
 
 @app.get("/posts")
-def get_posts():
-    cursor.execute(""" SELECT * FROM posts """)
-    posts = cursor.fetchall()
+def get_posts(db: Session = Depends(get_db)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
+    # cursor.execute(""" SELECT * FROM posts """)
+    # posts = cursor.fetchall()
+    posts = db.query(models.Post).all()
     return{"data": posts} # If I pass in an array like this, FastAPI 
                           # serializes 'my_posts' converting it into JSON
 
@@ -67,21 +72,28 @@ def create_posts(payload: dict = Body(...)): # saves body content to a dict name
     return {"new_post": f"title {payload['title']} content: {payload['content']}"}
 '''
 '''
-#1
+#2:
 FastAPI automatically checks frontend payload if data fits the schema model, 'Post'. If true,
 then it validates and data is available via 'new_post'. If false, then error is sent back to
 user stating where the error is. AUTOMATIC VALIDATION.
 #2
-Use this style of string witht he % symbols because it protects against SQL injection attacks
+Use this style of string witht he % symbols because it protects against SQL injection attackspp 
 '''
 @app.post("/posts", status_code=status.HTTP_201_CREATED) 
-def create_posts(post: Post): #1 
-    cursor.execute( #2          
-        """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
-        (post.title, post.content, post.published) 
-    ) 
-    new_post = cursor.fetchone()
-    conn.commit() # pushes the changes out to the database
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)): 
+    # cursor.execute( #2 ALSO code block below uses SQL instead of sqlalchemy          
+    #     """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
+    #     (post.title, post.content, post.published) 
+    # ) 
+    # new_post = cursor.fetchone()
+    # conn.commit() # pushes the changes out to the database
+    new_post = models.Post(**post.dict()) # this line does same thing as next 2 lines of comments
+    # new_post = models.Post(
+    # title=post.title, content=post.content, published=post.published)
+    db.add(new_post) # add to database
+    db.commit() # then commit it
+    db.refresh(new_post) # retrieve the new post that was created and store it back under the variable 'new_post'
+
     return {"data": new_post}           
 
 '''
@@ -90,10 +102,11 @@ so if true. Now throws error if the parameter is not the selcted type of
 int. Also, now the frontend has a good way of understanding what they did wrong
 '''                                  
 @app.get("/posts/{id}")
-def get_post(id: int):      
-    cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
-    post = cursor.fetchone()
-            
+def get_post(id: int, db: Session = Depends(get_db)):       
+    # cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
+    # post = cursor.fetchone()
+    post = db.query(models.Post).filter(models.Post.id == id).first()   
+
     if not post:          
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id: {id} was not found") 
@@ -102,32 +115,37 @@ def get_post(id: int):
                                     
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int):
-
-    cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
-
-    deleted_post = cursor.fetchone()
-    conn.commit()
-    
-    if deleted_post == None:
+def delete_post(id: int, db: Session = Depends(get_db)):
+    # cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
+    # deleted_post = cursor.fetchone()
+    # conn.commit()
+    post = db.query(models.Post).filter(models.Post.id == id)
+    if post.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
+    
+    post.delete(synchronize_session=False)
+    db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)                                   
 
 
 @app.put("/posts/{id}")
-def update_post(id: int, post: Post): # 'post: Post' makes sures the request comes in with the right schema
-    
-    cursor.execute(
-        """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
-        RETURNING * """,
-        (post.title, post.content, post.published, str(id)))
+def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)): # 'post: Post' makes sures the request comes in with the right schema
+    # cursor.execute(
+    #     """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
+    #     RETURNING * """,
+    #     (post.title, post.content, post.published, str(id)))
+    # updated_post = cursor.fetchone()
+    # conn.commit()
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
 
-    updated_post = cursor.fetchone()
-    conn.commit()
-    # if index doesnt exist, this sends an error code to the user stating the reason
-    if updated_post == None: 
+    if post == None: # if index doesnt exist, this sends an error code to the user stating the reason
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
-    return {'data': updated_post}
+
+    post_query.update(updated_post.dict(), synchronize_session=False)
+    db.commit()
+
+    return {'data': post_query.first()}
