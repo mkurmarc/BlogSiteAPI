@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
 
@@ -15,6 +15,20 @@ class PostCreate(PostBase):
 
 class Post(BaseModel):
     id: int
+    created_at: datetime
+
+    class Config: # this class
+        orm_mode = True
+
+
+class UserCreate(BaseModel):
+    email: EmailStr # using this type ensures email is a valid one, uses "email-validator" library
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
     created_at: datetime
 
     class Config: # this class
