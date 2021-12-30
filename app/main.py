@@ -61,7 +61,7 @@ def get_posts(db: Session = Depends(get_db)): # pass in Session as parameter sav
     # cursor.execute(""" SELECT * FROM posts """)
     # posts = cursor.fetchall()
     posts = db.query(models.Post).all()
-    return{"data": posts} # If I pass in an array like this, FastAPI 
+    return posts # If I pass in an array like this, FastAPI 
                           # serializes 'my_posts' converting it into JSON
 
 '''
@@ -79,7 +79,7 @@ user stating where the error is. AUTOMATIC VALIDATION.
 #2
 Use this style of string witht he % symbols because it protects against SQL injection attackspp 
 '''
-@app.post("/posts", status_code=status.HTTP_201_CREATED) 
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post) 
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)): 
     # cursor.execute( #2 ALSO code block below uses SQL instead of sqlalchemy          
     #     """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
@@ -94,7 +94,7 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     db.commit() # then commit it
     db.refresh(new_post) # retrieve the new post that was created and store it back under the variable 'new_post'
 
-    return {"data": new_post}           
+    return new_post          
 
 '''
 'id: int' Validates that path parameter can be turned into int and does
@@ -111,7 +111,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id: {id} was not found") 
 
-    return{"post_detail": post}            
+    return post           
                                     
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -148,4 +148,4 @@ def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends
     post_query.update(updated_post.dict(), synchronize_session=False)
     db.commit()
 
-    return {'data': post_query.first()}
+    return post_query.first()
