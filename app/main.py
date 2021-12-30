@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
@@ -56,7 +56,7 @@ def root():
     return {"message": "Hello World!!!"}
 
 
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
     # cursor.execute(""" SELECT * FROM posts """)
     # posts = cursor.fetchall()
@@ -101,7 +101,7 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
 so if true. Now throws error if the parameter is not the selcted type of
 int. Also, now the frontend has a good way of understanding what they did wrong
 '''                                  
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):       
     # cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
     # post = cursor.fetchone()
@@ -130,7 +130,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)                                   
 
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}", response_model=schemas.Post)
 def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)): # 'post: Post' makes sures the request comes in with the right schema
     # cursor.execute(
     #     """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
