@@ -16,6 +16,8 @@ class PostCreate(PostBase):
 
 class Post(BaseModel):
     id: int
+    title: str
+    content: str
     created_at: datetime
 
     class Config: # this class
@@ -48,4 +50,3 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str] = None
-    

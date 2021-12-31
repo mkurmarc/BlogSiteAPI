@@ -11,7 +11,8 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
+def get_posts(db: Session = Depends(get_db), 
+user_id: int = Depends(oauth2.get_current_user)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
     # cursor.execute(""" SELECT * FROM posts """)
     # posts = cursor.fetchall()
     posts = db.query(models.Post).all()
@@ -34,14 +35,14 @@ user stating where the error is. AUTOMATIC VALIDATION.
 '''
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post) 
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), 
-user_id: int = Depends(oauth2.get_current_user)): #3
+current_user: int = Depends(oauth2.get_current_user)): #3
     # cursor.execute( #2 ALSO code block below uses SQL instead of sqlalchemy          
     #     """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
     #     (post.title, post.content, post.published) 
     # ) 
     # new_post = cursor.fetchone()
     # conn.commit() # pushes the changes out to the database
-    print(user_id)
+    print(current_user.email)
     new_post = models.Post(**post.dict()) # this line does same thing as next 2 lines of comments
     # new_post = models.Post(
     # title=post.title, content=post.content, published=post.published)
@@ -57,7 +58,8 @@ so if true. Now throws error if the parameter is not the selcted type of
 int. Also, now the frontend has a good way of understanding what they did wrong
 '''                                  
 @router.get("/{id}", response_model=schemas.Post)
-def get_post(id: int, db: Session = Depends(get_db)):       
+def get_post(id: int, db: Session = Depends(get_db), 
+current_user: int = Depends(oauth2.get_current_user)):       
     # cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
     # post = cursor.fetchone()
     post = db.query(models.Post).filter(models.Post.id == id).first()   
@@ -70,7 +72,8 @@ def get_post(id: int, db: Session = Depends(get_db)):
                                     
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db: Session = Depends(get_db)):
+def delete_post(id: int, db: Session = Depends(get_db),
+current_user: int = Depends(oauth2.get_current_user)):
     # cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
     # deleted_post = cursor.fetchone()
     # conn.commit()
@@ -86,7 +89,8 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{id}", response_model=schemas.Post)
-def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db)): # 'post: Post' makes sures the request comes in with the right schema
+def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db),
+current_user: int = Depends(oauth2.get_current_user)): # 'post: Post' makes sures the request comes in with the right schema
     # cursor.execute(
     #     """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
     #     RETURNING * """,
