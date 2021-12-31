@@ -1,5 +1,5 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from .. import models, schemas
+from .. import models, schemas, oauth2
 from typing import List
 from sqlalchemy.orm import Session
 from .. database import get_db
@@ -26,21 +26,22 @@ def create_posts(payload: dict = Body(...)): # saves body content to a dict name
     return {"new_post": f"title {payload['title']} content: {payload['content']}"}
 '''
 '''
-#2:
-FastAPI automatically checks frontend payload if data fits the schema model, 'Post'. If true,
+#2: FastAPI automatically checks frontend payload if data fits the schema model, 'Post'. If true,
 then it validates and data is available via 'new_post'. If false, then error is sent back to
 user stating where the error is. AUTOMATIC VALIDATION.
-#2
-Use this style of string witht he % symbols because it protects against SQL injection attackspp 
+#2: Use this style of string witht he % symbols because it protects against SQL injection attackspp 
+#3: the 'Depends(oauth2.get_current_user)' forces the user to be logged in before they can create a post
 '''
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post) 
-def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)): 
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), 
+user_id: int = Depends(oauth2.get_current_user)): #3
     # cursor.execute( #2 ALSO code block below uses SQL instead of sqlalchemy          
     #     """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
     #     (post.title, post.content, post.published) 
     # ) 
     # new_post = cursor.fetchone()
     # conn.commit() # pushes the changes out to the database
+    print(user_id)
     new_post = models.Post(**post.dict()) # this line does same thing as next 2 lines of comments
     # new_post = models.Post(
     # title=post.title, content=post.content, published=post.published)
