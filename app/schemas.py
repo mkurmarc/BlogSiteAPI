@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
-
+# The PostBase is a the parent class, like BaseModel from fastapi
 class PostBase(BaseModel):
     title: str
     content: str
@@ -14,11 +14,10 @@ class PostCreate(PostBase):
     pass
 
 
-class Post(BaseModel):
+class Post(PostBase): # Responsible for sending the post out 
     id: int
-    title: str
-    content: str
     created_at: datetime
+    owner_id: int
 
     class Config: # this class
         orm_mode = True
