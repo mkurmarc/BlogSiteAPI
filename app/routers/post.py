@@ -10,49 +10,23 @@ router = APIRouter(
     tags=['Posts']
 )
 
-# this route gets all the posts 
+# 1A-1
 @router.get("/", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
-    # cursor.execute(""" SELECT * FROM posts """)
-    # posts = cursor.fetchall()
-    posts = db.query(models.Post).all()
-    return posts # If I pass in an array like this, FastAPI 
-                          # serializes 'my_posts' converting it into JSON
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user),
+limit: int = 10, skip: int = 0): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
+    # 1A-2
+    posts = db.query(models.Post).limit(limit).offset(skip).all()
+    return posts # If I pass in an array like this, FastAPI serializes 'my_posts' converting it into JSON
 
-"""
-# this route gets all the posts with the logged-in user's id
-@router.get("/", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)): 
-    posts = db.query(models.Post).filter(
-        models.Post.owner_id == current_user.id).all()
+# 1A-3, 1A-4
 
-    return posts 
-"""
-'''
-# another example of using the Body
-@router.post("/createposts")
-def create_posts(payload: dict = Body(...)): # saves body content to a dict named payload
-    print(payload)
-    return {"new_post": f"title {payload['title']} content: {payload['content']}"}
-'''
-'''
-#2: FastAPI automatically checks frontend payload if data fits the schema model, 'Post'. If true,
-then it validates and data is available via 'new_post'. If false, then error is sent back to
-user stating where the error is. AUTOMATIC VALIDATION.
-#2: Use this style of string witht he % symbols because it protects against SQL injection attackspp 
-#3: the 'Depends(oauth2.get_current_user)' forces the user to be logged in before they can create a post
-'''
+# 1A-5, 1A-6
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post) 
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), 
-current_user: int = Depends(oauth2.get_current_user)): #3
-    # cursor.execute( #2 ALSO code block below uses SQL instead of sqlalchemy          
-    #     """ INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, 
-    #     (post.title, post.content, post.published) 
-    # ) 
-    # new_post = cursor.fetchone()
-    # conn.commit() # pushes the changes out to the database
+current_user: int = Depends(oauth2.get_current_user)): # 1A-7
+    # 1A-8
     new_post = models.Post(owner_id=current_user.id, **post.dict()) # this line does same thing as next 2 lines of comments
-    # new_post = models.Post(
+    # new_post = models.Post
     # title=post.title, content=post.content, published=post.published)
     db.add(new_post) # add to database
     db.commit() # then commit it
@@ -60,16 +34,12 @@ current_user: int = Depends(oauth2.get_current_user)): #3
 
     return new_post          
 
-'''
-'id: int' Validates that path parameter can be turned into int and does
-so if true. Now throws error if the parameter is not the selcted type of
-int. Also, now the frontend has a good way of understanding what they did wrong
-'''                                  
+
+# 1A-9                                  
 @router.get("/{id}", response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db), 
 current_user: int = Depends(oauth2.get_current_user)):       
-    # cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),)) # converts int to string AND this comma may fix a current bug
-    # post = cursor.fetchone()
+    # 1A-10
     post = db.query(models.Post).filter(models.Post.id == id).first()   
 
     if not post:          
@@ -79,12 +49,11 @@ current_user: int = Depends(oauth2.get_current_user)):
     return post           
                                     
 
+# DELETE single post with post id
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db),
 current_user: int = Depends(oauth2.get_current_user)):
-    # cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
-    # deleted_post = cursor.fetchone()
-    # conn.commit()
+    # 1A-11
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
 
@@ -102,15 +71,11 @@ current_user: int = Depends(oauth2.get_current_user)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)                                   
 
 
+# PUT, updates single post by id
 @router.put("/{id}", response_model=schemas.Post)
 def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(get_db),
 current_user: int = Depends(oauth2.get_current_user)): # 'post: Post' makes sures the request comes in with the right schema
-    # cursor.execute(
-    #     """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
-    #     RETURNING * """,
-    #     (post.title, post.content, post.published, str(id)))
-    # updated_post = cursor.fetchone()
-    # conn.commit()
+    # 1A-12
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
 
