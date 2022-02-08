@@ -10,15 +10,24 @@ router = APIRouter(
     tags=['Posts']
 )
 
+# this route gets all the posts 
 @router.get("/", response_model=List[schemas.Post])
-def get_posts(db: Session = Depends(get_db), 
-user_id: int = Depends(oauth2.get_current_user)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
     # cursor.execute(""" SELECT * FROM posts """)
     # posts = cursor.fetchall()
     posts = db.query(models.Post).all()
     return posts # If I pass in an array like this, FastAPI 
                           # serializes 'my_posts' converting it into JSON
 
+"""
+# this route gets all the posts with the logged-in user's id
+@router.get("/", response_model=List[schemas.Post])
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)): 
+    posts = db.query(models.Post).filter(
+        models.Post.owner_id == current_user.id).all()
+
+    return posts 
+"""
 '''
 # another example of using the Body
 @router.post("/createposts")
@@ -42,8 +51,7 @@ current_user: int = Depends(oauth2.get_current_user)): #3
     # ) 
     # new_post = cursor.fetchone()
     # conn.commit() # pushes the changes out to the database
-    print(current_user.email)
-    new_post = models.Post(**post.dict()) # this line does same thing as next 2 lines of comments
+    new_post = models.Post(owner_id=current_user.id, **post.dict()) # this line does same thing as next 2 lines of comments
     # new_post = models.Post(
     # title=post.title, content=post.content, published=post.published)
     db.add(new_post) # add to database
@@ -77,19 +85,25 @@ current_user: int = Depends(oauth2.get_current_user)):
     # cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING * """, (str(id),))
     # deleted_post = cursor.fetchone()
     # conn.commit()
-    post = db.query(models.Post).filter(models.Post.id == id)
-    if post.first() == None:
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
+
+    if post == None: # checks if post exists
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
+
+    if post.owner_id != current_user.id: # checks if owner of the post is the user logged in user
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="Not authorized to perform requested action")
     
-    post.delete(synchronize_session=False)
+    post_query.delete(synchronize_session=False)
     db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)                                   
 
 
 @router.put("/{id}", response_model=schemas.Post)
-def update_post(id: int, updated_post: schemas.PostCreate, db: Session = Depends(get_db),
+def update_post(id: int, updated_post: schemas.PostCreate,db: Session = Depends(get_db),
 current_user: int = Depends(oauth2.get_current_user)): # 'post: Post' makes sures the request comes in with the right schema
     # cursor.execute(
     #     """ UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s 
@@ -103,6 +117,10 @@ current_user: int = Depends(oauth2.get_current_user)): # 'post: Post' makes sure
     if post == None: # if index doesnt exist, this sends an error code to the user stating the reason
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} does not exist")
+
+    if post.owner_id != current_user.id: # checks if owner of the post is the user logged in user
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                            detail="Not authorized to perform requested action")
 
     post_query.update(updated_post.dict(), synchronize_session=False)
     db.commit()
