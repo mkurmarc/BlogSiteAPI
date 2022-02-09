@@ -1,6 +1,6 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from .. import models, schemas, oauth2
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from .. database import get_db
 
@@ -13,13 +13,13 @@ router = APIRouter(
 # 1A-1
 @router.get("/", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user),
-limit: int = 10, skip: int = 0): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
+limit: int = 10, skip: int = 0, search: Optional[str] = ""): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
     # 1A-2
-    posts = db.query(models.Post).limit(limit).offset(skip).all()
+    posts = db.query(models.Post).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+    # 1A-13
     return posts # If I pass in an array like this, FastAPI serializes 'my_posts' converting it into JSON
 
 # 1A-3, 1A-4
-
 # 1A-5, 1A-6
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post) 
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), 
