@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, conint
 from datetime import datetime
 
 # The PostBase is a the parent class, like BaseModel from fastapi
@@ -22,8 +22,8 @@ class UserOut(BaseModel):
     class Config: # this class
         orm_mode = True
 
-
-class Post(PostBase): # Responsible for sending the post out 
+# Responsible for sending the post out 
+class Post(PostBase): 
     id: int
     created_at: datetime
     owner_id: int
@@ -65,3 +65,9 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str] = None
+
+
+class Vote(BaseModel):
+    post_id: int
+    dir: conint(le=1, ge=0) # means lessthan 1 and greaterthan 0, aka 0 or 1
+    # maybe try validator decorator from pydantic to achieve this too??? not sure
