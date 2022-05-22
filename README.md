@@ -7,5 +7,5 @@
 - Below are screenshots of the interactive UI for my backend API (courtesy of Swagger UI)
 ![blogsiteapi_screenshot_1](https://user-images.githubusercontent.com/51379562/167350568-f0967a28-2e8d-4257-a88a-93db94040611.png)
 
-- This shows me attemting to access a protected route without a JWT token and getting denied by the server
+- This shows me attempting to access a protected route without a JWT token and getting denied by the server
 ![blogsiteapi_screenshot_2](https://user-images.githubusercontent.com/51379562/167350584-af6fefb4-4660-4db2-8e59-7b501b69cfdd.png)
