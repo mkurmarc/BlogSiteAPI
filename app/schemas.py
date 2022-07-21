@@ -47,6 +47,13 @@ class Post(PostBase):
         }
     }
 '''
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+
+    class Config: 
+        orm_mode = True
+
 
 class UserCreate(BaseModel):
     email: EmailStr # using this type ensures email is a valid one, uses "email-validator" library

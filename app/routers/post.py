@@ -13,16 +13,20 @@ router = APIRouter(
 
 # 1A-1
 # @router.get("/", response_model=List[schemas.Post])
-@router.get("/")
+@router.get("/", response_model=List[schemas.PostOut])
 def get_posts(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user),
 limit: int = 10, skip: int = 0, search: Optional[str] = ""): # pass in Session as parameter saved as 'db' when using sqlalchemy and fastapi
     # 1A-2
-    posts = db.query(models.Post).filter(
-        models.Post.title.contains(search)).limit(limit).offset(skip).all()
+    # posts = db.query(models.Post).filter(
+    #     models.Post.title.contains(search)).limit(limit).offset(skip).all()
     # 1A-13
-    results = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
-        models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).all()
-    
+    posts = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+        models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).filter(
+        models.Post.title.contains(search)).limit(limit).offset(skip).all()
+    # posts SQL equivalent w/o filter: 
+    # select posts.*, count(votes.post_id) as votes from posts 
+    # left join votes on posts.id = votes.post_id
+    # group by posts.id;
     return posts # If I pass in an array like this, FastAPI serializes 'my_posts' converting it into JSON
 
 # 1A-3, 1A-4
@@ -42,11 +46,14 @@ current_user: int = Depends(oauth2.get_current_user)): # 1A-7
 
 
 # 1A-9                                  
-@router.get("/{id}", response_model=schemas.Post)
+@router.get("/{id}", response_model=schemas.PostOut) # get post
 def get_post(id: int, db: Session = Depends(get_db), 
 current_user: int = Depends(oauth2.get_current_user)):       
     # 1A-10
-    post = db.query(models.Post).filter(models.Post.id == id).first()   
+    # post = db.query(models.Post).filter(models.Post.id == id).first()   
+    post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+        models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(models.Post.id).filter(
+            models.Post.id == id).first() # now queries votes too 
 
     if not post:          
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
