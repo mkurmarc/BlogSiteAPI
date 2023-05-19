@@ -4,7 +4,7 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.schema import ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from .database import Base
-
+# fun
 
 class Post(Base):
     __tablename__ = "posts"
