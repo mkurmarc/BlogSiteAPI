@@ -1,3 +1,5 @@
 __pycache__
 env/
 .env
+docker-compose-dev.yml
+.pytest_cache/
