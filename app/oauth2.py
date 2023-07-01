@@ -27,7 +27,19 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 
-def verify_access_token(token: str, credentials_exception):
+def verify_access_token(token: str, credentials_exception: HTTPException):
+    """
+    Verifies and decodes a JWT token. If verification is successful, a TokenData 
+    object is returned. If token verification fails, a credentials_exception is 
+    raised.
+    
+    Args:
+        token (str): The JWT token to verify and decode.
+        credentials_exception: The exception to be raised if token verification fails.
+    
+    Returns:
+        TokenData: A Pydantic model containing the decoded information from the JWT.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) # decodes the token from user
         id: str = payload.get("user_id")
@@ -42,6 +54,23 @@ def verify_access_token(token: str, credentials_exception):
 
 # initializes credentials_exception and calls the verify token method with the users token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
+    """
+    Authenticates a user using a provided JWT token and retrieves the user's details from a database. 
+    If token verification fails, a HTTP 401 Unauthorized error is returned.
+
+    Args:
+        token (str): The JWT token to verify. This is provided using FastAPI's dependency injection system, 
+        and would typically come from the 'Authorization' header in the HTTP request.
+        
+        db (Session): The database session to use for querying the database. This is provided using 
+        FastAPI's dependency injection system.
+
+    Returns:
+        models.User: The authenticated user's details retrieved from the database. 
+
+    Raises:
+        HTTPException: If token verification fails, an HTTP 401 Unauthorized error is returned.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, 
         detail=f"Could not validate credentials",

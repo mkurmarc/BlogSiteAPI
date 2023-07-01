@@ -6,7 +6,7 @@ from psycopg2.extras import RealDictCursor
 import time
 from .config import settings
 
-# 
+
 SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
 #                         'postgresql://<username>:<password>@<ip-address/hostname>/<database_name>'
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -23,17 +23,4 @@ def get_db():
     finally:
         db.close()
 
-"""
-# temp solution to connect to DB. Later add production ready solution
-while True:
-    try:
-        conn = psycopg2.connect(host='localhost', database='BlogSiteAPI', user='postgres', 
-                                password='Zergling22!', cursor_factory=RealDictCursor)
-        cursor = conn.cursor()
-        print("DB connection was successful!")
-        break
-    except Exception as error:
-        print("Connecting to DB failed!")
-        print("Error: ", error)
-        time.sleep(2)
-"""
+
